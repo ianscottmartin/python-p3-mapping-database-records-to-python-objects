@@ -1,11 +1,9 @@
 import sqlite3
+from config import CURSOR
 
-CONN = sqlite3.connect('music.db')
-CURSOR = CONN.cursor()
 
 class Song:
-
-    all = []
+    all = []  # List to store all song instances
 
     def __init__(self, name, album):
         self.id = None
@@ -21,15 +19,6 @@ class Song:
                 album TEXT
             )
         """
-
-        CURSOR.execute(sql)
-
-    @classmethod
-    def drop_table(cls):
-        sql = """
-            DROP TABLE IF EXISTS songs
-        """
-
         CURSOR.execute(sql)
 
     def save(self):
@@ -37,10 +26,10 @@ class Song:
             INSERT INTO songs (name, album)
             VALUES (?, ?)
         """
-
         CURSOR.execute(sql, (self.name, self.album))
 
-        self.id = CURSOR.execute("SELECT last_insert_rowid() FROM songs").fetchone()[0]
+        # Fetch the last inserted row id
+        self.id = CURSOR.lastrowid
 
     @classmethod
     def create(cls, name, album):
@@ -48,4 +37,18 @@ class Song:
         song.save()
         return song
 
-    # new code goes here!
+    @classmethod
+    def new_from_db(cls, row):
+        song = cls(row[1], row[2])
+        song.id = row[0]
+        return song
+
+    @classmethod
+    def all(cls):
+        sql = """
+            SELECT *
+            FROM songs
+        """
+        all_songs = CURSOR.execute(sql).fetchall()
+        cls.all = [cls.new_from_db(row) for row in all_songs]
+        return cls.all
